@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<!-- 竞赛管理界面 -->
+<html>
+	<head>
+		<meta charset="utf-8"><!-- 字符编码 -->
+		<meta http-equiv="X-UA-Compatible" content="IE=edge"><!-- IE 兼容模式 -->
+		<meta name="viewport" content="width=device-width, initial-scale=1"><!-- 允许响应式布局 -->
+		<link rel="stylesheet" href="static/css/bootstrap.min.css">
+		<link rel="stylesheet" href="static/css/plugins.min.css" />
+		<script src="static/js/jquery-3.4.1.min.js"></script>
+		<script src="static/js/bootstrap.min.js"></script>
+		<script src="static/js/angular.min.js"></script>
+		<script src="static/js/angular-route.min.js"></script>
+		<title>竞赛管理界面</title>
+		<style>
+			.sidebar-menu>li{
+				height: 40px;
+				width: 100%;
+			}
+			.sidebar-menu>li>a{
+				margin: 0;
+				border: 0;
+				padding: 0;
+				height: 40px;
+				width: 100%;
+				padding: 10px 30px;
+			}
+			.sidebar-menu>li.active{
+				color: #5399e8;
+			}
+			.sidebar-menu>li.active>a{
+				color: #5399e8;
+				background-color: #252c30;
+			}
+			.content-wrapper>.content-body {
+			    overflow-y: scroll;
+			}
+			pre{
+				text-align: left;
+			}
+		</style>
+	</head>
+	<body ng-app="manage" onload="active_side('#' + (window.location.href.split('!/')[1] || 'users'));">
+		<div class="main-header">
+			<nav class="navbar navbar-static-top" role="navigation" style="background-color: #f6f6f6;font-size: 24px;text-align: center;line-height: 50px;letter-spacing: 20px;margin-left: 0px;">竞赛练习系统 —— 管理员管理界面</nav>
+		</div>
+		<aside class="main-sidebar" style="min-height: 887px;">
+			<div style="min-height: 887px;height: 100%;background-color: #3c4852;color: #a2b5b9;">
+				<ul class="sidebar-menu">
+					<li class="header" style="background-color: #2e343c;height: 30px;line-height: 20px;width: 100%;padding: 5px 30px;color: #707070;">管理员功能</li>
+					<li id="users" class="active"><a href="#!/users">用户管理</a></li>
+					<li id="question"><a href="#!/question">题目管理</a></li>
+					<li id="practice"><a href="#!/practice">场次管理</a></li>
+					<li id="competition"><a href="#!/competition">比赛管理</a></li>
+					<li><a href="" onclick="logout()">退出登录</a></li>
+				</ul>
+			</div>
+		</aside>
+		<div class="ui-notification success killed" style="top: 10px;right: 10px;">
+			<div class="message" id="message"></div>
+		</div>
+		<div class="content-wrapper" style="min-height: 887px;">
+			<div ng-view class="ng-scope">
+				等待angular路由渲染...
+			</div>
+		</div>
+		<script type="text/javascript">
+			var url = "127.0.0.1:8888", u = p = false, q_id, loop;
+			// 动态调节侧边栏
+			window.onscroll = function() {
+			    $(".main-sidebar").height($(".content-wrapper").height());
+			};
+			// 侧边栏路由监听
+			angular.module("manage",["ngRoute"]).config(["$routeProvider", function($routeProvider){
+				$routeProvider
+				.when("/users",{template: '\
+<div>\
+	<form class="form-horizontal" style="padding-top: 30px;">\
+		<div class="form-group">\
+			<div class="col-sm-offset-2 col-xs-offset-2">\
+				<label for="inputUser" class="col-sm-2 control-label pull-left">用户名：</label>\
+				<div class="col-sm-6 col-xs-6">\
+					<input type="text" class="form-control" id="inputUser" placeholder="用户名" onkeyup="changeUser(this.value)" aria-describedby="helpUser" onfocus="changeUser(this.value)" onfocusout="changeUser(this.value)">\
+				</div>\
+			</div>\
+		</div>\
+		<div class="form-group">\
+			<div class="col-sm-offset-2 col-xs-offset-2">\
+				<label for="inputPassword" class="col-sm-2 control-label pull-left">密码：</label>\
+				<div class="col-sm-6 col-xs-6">\
+					<input type="password" class="form-control" id="inputPassword" onmouseover="this.type=\'text\'" onmouseout="this.type=\'password\'" placeholder="密码" onkeyup="changePassword(this.value)"  aria-describedby="helpPassword" onfocus="changePassword(this.value)" onfocusout="changePassword(this.value)">\
+				</div>\
+			</div>\
+		</div>\
+		<div class="form-group text-center">\
+			<label class="radio-inline">\
+				<input type="radio" name="user_type" value="user" checked="checked"> 练习用户\
+			</label>\
+			<label class="radio-inline">\
+				<input type="radio" name="user_type" value="random"> 比赛用户\
+			</label>\
+			<label class="radio-inline">\
+				<input type="radio" name="user_type" value="admin" disabled="disabled"> 管理员用户（暂时禁止添加）\
+			</label>\
+		</div>\
+		<div class="form-group">\
+			<div class="btn-group btn-group-justified center-block" style="width: 50%;" role="group">\
+				<div class="btn-group" role="group">\
+					<button type="button" id="update" onclick="action_user(\'update\')" class="btn btn-default" disabled>更新密码</button>\
+				</div>\
+				<div class="btn-group" role="group">\
+					<button type="button" id="create" onclick="action_user(\'add\')" class="btn btn-default" disabled>创建用户</button>\
+				</div>\
+			</div>\
+		</div>\
+	</form>\
+	<div class="center-block" style="height: 34px;width: 400px;margin: 20px auto;">\
+		<div class="btn-group" role="group">\
+			<button type="button" id="user" class="btn btn-primary">练习用户</button>\
+			<button type="button" id="random" class="btn btn-primary">比赛用户</button>\
+			<button type="button" id="admin" class="btn btn-primary">管理员用户</button>\
+		</div>\
+		<label class="pull-right" style="line-height: 34px;">\
+			<input type="checkbox" id="show"> 查询结果显示密码\
+		</label>\
+	</div>\
+	<div id="show_users">\
+		<table class="table table-striped table-hover text-center">\
+			<tr>\
+				<td class="sr-only">ID</td>\
+				<td>用户名</td>\
+				<td>密码</td>\
+				<td>权限</td>\
+				<td>操作</td>\
+			</tr>\
+		</table>\
+	</div>\
+</div>\
+				'})
+				.when("/question",{template:'\
+				<div>\
+					<form class="form-horizontal" style="padding-top: 30px;">\
+						<div class="form-group" style="width: 90%;margin: 0 auto;">\
+							<textarea class="form-control" id="question_area" rows="11">\
+{\n\
+    "prepare": ["添加需要提前执行的命令"],\n\
+    "classify": "题目类别",\n\
+    "title": "题目详情",\n\
+    "Implements": {\n\
+        "执行语句1": {"包含结果1": 0.5, "包含结果2": 0.5},\n\
+        "执行语句2": {"包含结果1": 0.5, "包含结果2": 0.5}\n\
+    }\n\
+}</textarea>\
+						</div>\
+						<div class="form-group">\
+							<div class="center-block" style="margin: 20px auto;">\
+								<button type="button" class="btn btn-primary center-block" onclick="add_que()">添加题目（更改模板中中文地方即可）</button>\
+							</div>\
+						</div>\
+					</form>\
+					<div class="center-block" style="margin: 20px auto;">\
+						<button type="button" class="btn btn-primary center-block" onclick="get_que()">查询题目列表</button>\
+					</div>\
+					<div id="show_questions">\
+						<table class="table table-striped table-hover text-center">\
+							<tr>\
+								<td class="sr-only">ID</td>\
+								<td>题目详情</td>\
+								<td>题目类型</td>\
+								<td>题目答案</td>\
+								<td>题目环境预执行</td>\
+								<td>操作</td>\
+							</tr>\
+						</table>\
+					</div>\
+				</div>\
+				'})
+				.when("/practice",{template:'\
+<div>\
+	<form class="form-horizontal" style="padding-top: 30px;">\
+		<div class="form-group">\
+			<div class="col-sm-offset-2 col-xs-offset-2">\
+				<label for="inputSession" class="col-sm-2 control-label pull-left">场次名</label>\
+				<div class="col-sm-6 col-xs-6">\
+					<input type="text" class="form-control" id="inputSession" placeholder="场次名">\
+				</div>\
+			</div>\
+		</div>\
+		<div class="form-group">\
+			<div class="btn-group btn-group-justified center-block" style="width: 50%;" role="group">\
+				<div class="btn-group" role="group">\
+					<button type="button" onclick="get_que2()" class="btn btn-default">查看题库</button>\
+				</div>\
+				<div class="btn-group" role="group">\
+					<button type="button" onclick="use_que()" class="btn btn-default">创建场次</button>\
+				</div>\
+				<div class="btn-group" role="group">\
+					<button type="button" onclick="del_score()" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="请先在场次名处输入“确定”">删除全部场次</button>\
+				</div>\
+			</div>\
+		</div>\
+	</form>\
+	<div id="show_questions">\
+		<table class="table table-striped table-hover text-center">\
+			<tr>\
+				<td>题目详情</td>\
+				<td>题目类型</td>\
+				<td>题目答案</td>\
+				<td>题目环境预执行</td>\
+				<td>操作</td>\
+			</tr>\
+		</table>\
+	</div>\
+</div>\
+				'})
+				.when("/competition",{template:'\
+<form class="form-horizontal" style="padding-top: 30px;">\
+	<div class="form-group">\
+		<div class="col-sm-offset-2 col-xs-offset-2">\
+			<label for="inputSession" class="col-sm-2 control-label pull-left">场次名</label>\
+			<div class="col-sm-6 col-xs-6">\
+				<input type="text" class="form-control" id="inputSession" placeholder="场次名">\
+			</div>\
+		</div>\
+	</div>\
+	<div class="form-group">\
+		<div class="center-block" style="margin: 20px auto;">\
+			<button type="button" id="com" class="btn btn-primary center-block" style="width: 20%;" onclick="start()">发布/查看比赛</button>\
+		</div>\
+	</div>\
+</form>\
+<div id="show_onlines">\
+	<table class="table table-striped table-hover text-center">\
+		<tr>\
+			<td>登录系统人员</td>\
+			<td>登录IP</td>\
+			<td>当前答题进度</td>\
+			<td>当前分数</td>\
+			<td>操作</td>\
+		</tr>\
+	</table>\
+</div>\
+				'})
+				.otherwise("/users", {
+					template: "string",
+					templateUrl: "string",
+					controller: "string, function 或 array",
+					controllerAs: "string",
+					redirectTo: "string, function",
+					resolve: "object<key, function>"
+				});
+			}]);
+			$(function () {
+				// 鼠标悬浮显示提示信息
+				$('[data-toggle="tooltip"]').tooltip()
+				// 侧边栏点击事件监听
+				$("#users").click(function() {
+					active_side("#users");
+				})
+				$("#question").click(function() {
+					active_side("#question");
+				})
+				$("#practice").click(function() {
+					active_side("#practice");
+				})
+				$("#competition").click(function() {
+					active_side("#competition");
+				})
+				// 查询user类别用户按钮监听
+				$("#user").click(function() {
+					active_type("#user");
+					$.ajax({
+						type: "get",
+						async: false,
+						url: "http://" + url + "/users",
+						data: {type: "user"},
+						dataType: "json",
+						crossDomain: true,
+						xhrFields:{ withCredentials: true },
+						success: function (data_bk) {
+							make_table(eval(data_bk), "查询成功！");
+						},
+						error: function (err) {
+							make_table([], err.responseText);
+						}
+					})
+				})
+				// 查询random类别用户按钮监听
+				$("#random").click(function() {
+					active_type("#random");
+					$.ajax({
+						type: "get",
+						async: false,
+						url: "http://" + url + "/users",
+						data: {type: "random"},
+						dataType: "json",
+						crossDomain: true,
+						xhrFields:{ withCredentials: true },
+						success: function (data_bk) {
+							make_table(eval(data_bk), "查询成功！");
+						},
+						error: function (err) {
+							make_table([], err.responseText);
+						}
+					})
+				})
+				// 查询admin类别用户按钮监听
+				$("#admin").click(function() {
+					active_type("#admin");
+					$.ajax({
+						type: "get",
+						async: false,
+						url: "http://" + url + "/users",
+						data: {type: "admin"},
+						dataType: "json",
+						crossDomain: true,
+						xhrFields:{ withCredentials: true },
+						success: function (data_bk) {
+							make_table(eval(data_bk), "查询成功！");
+						},
+						error: function (err) {
+							make_table([], err.responseText);
+						}
+					})
+				})
+			})
+			// 侧边栏激活状态调整
+			function active_side(side) {
+				var sides = ["#users", "#question", "#practice", "#competition"];
+				for (var s = 0;s < sides.length;s++){
+					if (sides[s] == side) {
+						$(sides[s]).addClass("active");
+					}
+					else {
+						$(sides[s]).removeClass("active");
+					}
+				}
+			}
+			// 用户类别查询按钮激活状态调整
+			function active_type(type) {
+				var types = ["#user", "#random", "#admin"];
+				for (var t = 0;t < types.length;t++){
+					if (types[t] == type) {
+						$(types[t]).addClass("active");
+					}
+					else {
+						$(types[t]).removeClass("active");
+					}
+				}
+			}
+			// 右上角消息提示框改变文字出现并定时消失功能
+			function note(msg) {
+				msg = msg || "server no-repeat"
+				document.getElementById("message").innerText = msg;
+				$(".ui-notification").removeClass("killed");
+				setTimeout(function(){$(".ui-notification").addClass("killed")}, 2000);
+			}
+			// 生成用户查询列表
+			function make_table(data, msg) {
+				note(msg);
+				var t = '\
+<table class="table table-striped table-hover text-center">\
+	<tr>\
+		<td class="sr-only">ID</td>\
+		<td>用户名</td>\
+		<td>密码</td>\
+		<td>权限</td>\
+		<td>操作</td>\
+	</tr>\
+				';
+				for (var d = 0;d < data.length;d++){
+					t = t + '\
+	<tr>\
+		<td class="sr-only">' + data[d].id + "</td>\
+		<td>" + data[d].user + "</td>\
+		<td>" + data[d].password + "</td>\
+		<td>" + data[d].permission + "</td>\
+		<td><button onclick=\"del('" + data[d].user + "\')\">删除用户</button></td>\
+	</tr>\
+					"
+					if (!$("#show").prop('checked')) {
+						t = t.replace("<td>" + data[d].password + "</td>", "<td>" + "*".repeat(data[d].password.length) + "</td>");
+					}
+					if (data[d].permission == "admin") {
+						t = t.replace("button", 'button disabled="disabled"');
+						t = t.replace("删除用户", "管理员禁止删除");
+					}
+				}
+				t += '\
+</table>\
+				';
+				document.getElementById("show_users").innerHTML = t;
+			}
+			// 生成题目查询列表
+			function make_table2(data, msg) {
+				note(msg);
+				var t = '\
+<table class="table table-striped table-hover text-center">\
+	<tr>\
+		<td class="sr-only">ID</td>\
+		<td>题目详情</td>\
+		<td>题目类型</td>\
+		<td>题目答案</td>\
+		<td>题目环境预执行</td>\
+		<td>操作</td>\
+	</tr>\
+				';
+				for (var d = 0;d < data.length;d++){
+					t = t + '\
+	<tr>\
+		<td class="sr-only">' + data[d].id + '</td>\
+		<td><pre style="max-width: 800px;">' + data[d].question + "</pre></td>\
+		<td>" + data[d].type + "</td>\
+		<td>" + data[d].answer + "</td>\
+		<td>" + data[d].prepare + "</td>\
+		<td><button onclick=\"del_que('" + data[d].id + "')\">删除题目</button></td>\
+	</tr>\
+					"
+					if (data[d].id == "！") {
+						t = t.replace("button", 'button disabled="disabled"');
+					}
+				}
+				t += '\
+</table>\
+				';
+				document.getElementById("show_questions").innerHTML = t;
+			}
+			// 生成场次题目查询列表
+			function make_table3(data, msg) {
+				note(msg);
+				var c;
+				var t = '\
+<table class="table table-striped table-hover text-center">\
+	<tr>\
+		<td>题目详情</td>\
+		<td>题目类型</td>\
+		<td>题目答案</td>\
+		<td>题目环境预执行</td>\
+		<td>操作</td>\
+	</tr>\
+				';
+				for (var d = 0;d < data.length;d++){
+					if (q_id && q_id.indexOf(data[d].id) != -1) {
+						var c = 'checked';
+					}
+					else {var c = '';}
+					t = t + '\
+	<tr>\
+		<td><pre style="max-width: 800px;">' + data[d].question + "</pre></td>\
+		<td>" + data[d].type + "</td>\
+		<td>" + data[d].answer + "</td>\
+		<td>" + data[d].prepare + '</td>\
+		<td><input type="checkbox" name="que" value="q' + data[d].id + '"' + c + ' ></td>\
+	</tr>\
+					'
+				}
+				t += '\
+</table>\
+				';
+				document.getElementById("show_questions").innerHTML = t;
+			}
+			// 生成在线人员查询列表
+			function make_table4(data, msg) {
+				note(msg);
+				var c;
+				var t = '\
+<table class="table table-striped table-hover text-center">\
+	<tr>\
+		<td>登录系统人员</td>\
+		<td>登录IP</td>\
+		<td>当前答题进度</td>\
+		<td>当前分数</td>\
+		<td>操作</td>\
+	</tr>\
+				';
+				for (var d = 0;d < data.length;d++){
+					if (q_id && q_id.indexOf(data[d].id) != -1) {
+						var c = 'checked';
+					}
+					else {var c = '';}
+					t = t + "\
+	<tr>\
+		<td>" + data[d].person + "</td>\
+		<td>" + data[d].ip + "</td>\
+		<td>" + data[d].question_id + "</td>\
+		<td>" + data[d].score + "</td>\
+		<td><button onclick=\"show_detail('" + data[d].person + "')\">得分详情</button></td>\
+	</tr>\
+					"
+				}
+				t += '\
+</table>\
+				';
+				document.getElementById("show_onlines").innerHTML = t;
+			}
+			// 删除用户
+			function del(user) {
+				active_type('');
+				$.ajax({
+					type: "post",
+					async: false,
+					url: "http://" + url + "/users",
+					data: {state: "delete", user: user},
+					dataType: "json",
+					crossDomain: true,
+					xhrFields:{ withCredentials: true },
+					success: function (data_bk) {
+						make_table([], data_bk);
+					},
+					error: function (err) {
+						make_table([], err.responseText);
+					}
+				})
+			}
+			// 增加用户或修改用户密码
+			function action_user(a) {
+				active_type('');
+				var data = {state: a, user: user};
+				data.user = document.getElementById("inputUser").value;
+				data.password = document.getElementById("inputPassword").value;
+				data.type = $("input[name='user_type']:checked").val();
+				$.ajax({
+					type: "post",
+					async: false,
+					url: "http://" + url + "/users",
+					data: data,
+					dataType: "json",
+					crossDomain: true,
+					xhrFields:{ withCredentials: true },
+					success: function (data_bk) {
+						make_table([], data_bk)
+					},
+					error: function (err) {
+						make_table([], err.responseText)
+					}
+				})
+			}
+			// 判断用户名是否合法
+			function changeUser(user) {
+				u = false;
+				$("#update").attr("disabled", "");
+				$("#create").attr("disabled", "");
+				if (user && /^[0-9]+$/.test(user) && user.length == 9) {
+					u = true;
+					if (u && p) {
+						$("#update").removeAttr("disabled");
+						$("#create").removeAttr("disabled");
+					}
+				}
+			}
+			// 判断用户密码是否合法
+			function changePassword(password) {
+				p = false;
+				$("#update").attr("disabled", "");
+				$("#create").attr("disabled", "");
+				if (password && /^[a-zA-Z0-9_]+$/.test(password) && password.length >= 8) {
+					p = true;
+					if (u && p) {
+						$("#update").removeAttr("disabled");
+						$("#create").removeAttr("disabled");
+					}
+				}
+			}
+			// 添加题目
+			function add_que() {
+				$.ajax({
+					type: "post",
+					async: false,
+					url: "http://" + url + "/questions",
+					data: {q:$("#question_area").val()},
+					dataType: "json",
+					crossDomain: true,
+					xhrFields:{ withCredentials: true },
+					success: function (data_bk) {
+						make_table2([], data_bk);
+					},
+					error: function (err) {
+						note(err.responseText);
+					}
+				})
+			}
+			// 获取所有题目详情
+			function get_que() {
+				$.ajax({
+					type: "get",
+					async: false,
+					url: "http://" + url + "/questions",
+					crossDomain: true,
+					xhrFields:{ withCredentials: true },
+					success: function (data_bk) {
+						make_table2(eval(data_bk), "查询成功！");
+					},
+					error: function (err) {
+						make_table2([], err.responseText);
+					}
+				})
+			}
+			// 可选场次获取题目详情
+			function get_que2() {
+				var data = {};
+				var msg = '';
+				if ($("#inputSession").val()) {
+					data.session = $("#inputSession").val();
+					$.ajax({
+						type: "get",
+						async: false,
+						url: "http://" + url + "/sessions",
+						data: data,
+						dataType: "json",
+						crossDomain: true,
+						xhrFields:{ withCredentials: true },
+						success: function (data_bk) {
+							if (data_bk instanceof Array) {
+								q_id = data_bk[0].question_id;
+							}
+							else {
+								msg = data_bk + "\n";
+								q_id = '';
+							}
+						},
+						error: function (err) {
+							make_table3([], err.responseText);
+						}
+					})
+				}
+				$.ajax({
+					type: "get",
+					async: false,
+					url: "http://" + url + "/questions",
+					crossDomain: true,
+					xhrFields:{ withCredentials: true },
+					success: function (data_bk) {
+						make_table3(eval(data_bk), msg + "题库查询成功！");
+					},
+					error: function (err) {
+						make_table3([], err.responseText);
+					}
+				})
+			}
+			// 添加场次设置所选题目为场次内题目
+			function use_que() {
+				q_id = [];
+				var data = {}
+				$("input[name='que']:checked").each(function() {
+					q_id.push($(this).val().replace("q", ""));
+				})
+				data.q_id = q_id.join(',');
+				if ($("#inputSession").val() && q_id.length) {
+					data.session = $("#inputSession").val();
+					$.ajax({
+						type: "post",
+						async: false,
+						url: "http://" + url + "/sessions",
+						data: data,
+						dataType: "json",
+						crossDomain: true,
+						xhrFields:{ withCredentials: true },
+						success: function (data_bk) {
+							note(data_bk);
+						},
+						error: function (err) {
+							make_table3([], err.responseText);
+						}
+					})
+				}
+				else if (!q_id.length) {
+					$.ajax({
+						type: "get",
+						async: false,
+						url: "http://" + url + "/questions",
+						crossDomain: true,
+						xhrFields:{ withCredentials: true },
+						success: function (data_bk) {
+							make_table3(eval(data_bk), "要选的题太多？已自动为您全选，把不要的去勾吧~");
+						},
+						error: function (err) {
+							make_table3([], err.responseText);
+						}
+					})
+					var choices=document.getElementsByName("que");
+					for(var i=0;i<choices.length;i++){
+						choices[i].checked=true;
+					}
+				}
+				else {
+					note("请输入场次号！");
+				}
+			}
+			// 按问题id删除问题
+			function del_que(id) {
+				$.ajax({
+					type: "post",
+					async: false,
+					url: "http://" + url + "/questions",
+					data: {id, id},
+					dataType: "json",
+					crossDomain: true,
+					xhrFields:{ withCredentials: true },
+					success: function (data_bk) {
+						make_table2([], data_bk);
+					},
+					error: function (err) {
+						make_table2([], err.responseText);
+					}
+				})
+			}
+			// 删除所有场次号数据
+			function del_score() {
+				if ($("#inputSession").val() == '确定') {
+					$.ajax({
+						type: "post",
+						async: false,
+						url: "http://" + url + "/sessions",
+						data: {session: "delete"},
+						dataType: "json",
+						crossDomain: true,
+						xhrFields:{ withCredentials: true },
+						success: function (data_bk) {
+							make_table([], data_bk);
+						},
+						error: function (err) {
+							make_table([], err.responseText);
+						}
+					})
+				}
+				else {
+					note("请在场次名内输入“确定”以继续");
+				}
+			}
+			// 开始、查询比赛
+			function start() {
+				if ($("#inputSession").val()) {
+					$.ajax({
+						type: "get",
+						async: false,
+						url: "http://" + url + "/competitions",
+						data: {session: $("#inputSession").val()},
+						dataType: "json",
+						crossDomain: true,
+						xhrFields:{ withCredentials: true },
+						success: function (data_bk) {
+							note(data_bk.res);
+							get_online();
+							loop = setInterval("get_online()", 5000);
+							$("#com").attr("onclick", "stop()");
+							$("#com").text("结束比赛");
+						},
+						error: function (err) {
+							note(err.responseText);
+						}
+					})
+				}
+				else {
+					note("请输入场次！");
+				}
+			}
+			// 停止比赛
+			function stop() {
+				$.ajax({
+					type: "get",
+					async: false,
+					url: "http://" + url + "/competitions",
+					data: {session: "stop"},
+					dataType: "json",
+					crossDomain: true,
+					xhrFields:{ withCredentials: true },
+					success: function (data_bk) {
+						note(data_bk.res);
+						loop = clearInterval(loop);
+						$("#com").attr("onclick", "start()");
+						$("#com").text("发布/查看比赛");
+					},
+					error: function (err) {
+						note(err.responseText);
+					}
+				})
+			}
+			// 获取所有在线人员（不含管理员）
+			function get_online() {
+				$.ajax({
+					type: "get",
+					async: false,
+					url: "http://" + url + "/online",
+					crossDomain: true,
+					xhrFields:{ withCredentials: true },
+					success: function (data_bk) {
+						make_table4(eval(data_bk).online, "登录系统人员已更新");
+					},
+					error: function (err) {
+						note("无法更新登录系统人员！请向管理员提交问题！");
+					}
+				})
+			}
+			// 退出登录、删除cookie数据
+			function logout() {
+				$.ajax({
+					type: "get",
+					async: false,
+					url: "http://" + url + "/logout",
+					crossDomain: true,
+					xhrFields:{ withCredentials: true },
+					success: function (data_bk) {
+						note(eval(data_bk).res);
+						setTimeout('window.location.href="index.html"', 2000);
+					},
+					error: function (err) {
+						note(err.responseText);
+					}
+				})
+			}
+			// 查看用户得分详情
+			function show_detail(per) {
+				window.open('score_list.html?' + per, '_blank');
+			}
+		</script>
+	</body>
+</html>

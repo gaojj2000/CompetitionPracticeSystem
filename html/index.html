@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<!-- 登录界面 -->
+<html>
+	<head>
+		<meta charset="utf-8"><!-- 字符编码 -->
+		<meta http-equiv="X-UA-Compatible" content="IE=edge"><!-- IE 兼容模式 -->
+		<meta name="viewport" content="width=device-width, initial-scale=1"><!-- 允许响应式布局 -->
+		<link rel="stylesheet" href="static/css/bootstrap.min.css">
+		<script src="static/js/baidu_jiami.js"></script>
+		<script src="static/js/jquery-3.4.1.min.js"></script>
+		<script src="static/js/bootstrap.min.js"></script>
+		<title>竞赛练习系统</title>
+		<style>
+			body{
+				height: 937px;
+				/* background: linear-gradient(to left top, #051937, #004d7a, #008793, #00bf72, #a8eb12); */
+			}
+			a:hover{
+				cursor:pointer;
+			}
+		</style>
+	</head>
+	<body onload="gettime();">
+		<div class="container">
+			<img class="img-responsive center-block" src="static/jslxxt.png" style="margin: 80px auto;">
+			<div id="clock" style="text-align: center;margin-bottom: 40px;font-size: 20px;"></div>
+			<p class="lead text-center"><b><em><ins>一个能够检验你所掌握知识程度的测试平台。</ins></em></b></p>
+			<ul class="nav nav-pills center-block" style="width: 304px;padding-top: 10px;padding-bottom: 20px;">
+				<li id="practice" class="active"><a>&ensp;&ensp;练&ensp;&ensp;习&ensp;&ensp;</a></li>
+				<li id="competition"><a>&ensp;&ensp;比&ensp;&ensp;赛&ensp;&ensp;</a></li>
+				<li id="admin"><a>&ensp;管&ensp;理&ensp;员&ensp;</a></li>
+			</ul>
+			<form class="form-horizontal">
+				<input type="hidden" id="loginType" class="sr-only" value="practice" />
+				<div id="user" class="form-group" style="margin: 30px auto;">
+					<div class="col-sm-offset-2 col-xs-offset-2">
+						<label for="inputUser" class="col-sm-2 control-label pull-left">用户名：</label>
+						<div class="col-sm-6 col-xs-6">
+							<input type="text" class="form-control" id="inputUser" placeholder="用户名" onkeyup="changeUser(this.value)" onfocus="changeUser(this.value)" onfocusout="changeUser(this.value)">
+							<span id="helpUser" class="help-block">用户名为9位，由数字组成。</span>
+						</div>
+					</div>
+				</div>
+				<div id="password" class="form-group" style="margin: 40px auto;">
+					<div class="col-sm-offset-2 col-xs-offset-2">
+						<label for="inputPassword" class="col-sm-2 control-label pull-left">密码：</label>
+						<div class="col-sm-6 col-xs-6">
+							<input type="password" class="form-control" id="inputPassword" placeholder="密码" onkeyup="changePassword(this.value)" onfocus="changePassword(this.value)" onfocusout="changePassword(this.value)">
+							<span id="helpPassword" class="help-block">密码至少8位，由数字大小写字母和下划线组成。</span>
+						</div>
+					</div>
+				</div>
+				<div class="form-group" style="margin: 50px auto;">
+					<div class="col-sm-offset-5 col-xs-offset-5">
+						<button type="button" id="login" class="btn btn-primary col-sm-4" disabled>登录</button>
+					</div>
+				</div>
+			</form>
+			<button type="button" id="Model" class="sr-only" data-toggle="modal" data-target="#myModal"></button>
+			<div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+				<div class="modal-dialog" role="document">
+					<div class="modal-content">
+						<div class="modal-header">
+							<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+							<h4 class="modal-title" id="myModalLabel">系统提示</h4>
+						</div>
+						<div id="model-text" class="modal-body"></div>
+						<div class="modal-footer">
+							<button id="close" type="button" class="btn btn-default" data-dismiss="modal">关闭</button>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div style="position: absolute;bottom: 0;width: 100%;text-align: center;">©2021 This system was created by GaoJunji .</div>
+		<script type="text/javascript">
+			var url = "127.0.0.1:8888", u = p = false;
+			// 基于cookie进行页面跳转
+			if (document.cookie.indexOf('do=practice') != -1) {
+				window.location.href = 'practice_list.html'
+			}
+			else if (document.cookie.indexOf('do=competition') != -1) {
+				window.location.href = 'competition_list.html'
+			}
+			else if (document.cookie.indexOf('do=admin') != -1) {
+				window.location.href = 'management.html#!/users'
+			}
+			$(function () {
+				// 登录按钮监听
+				$("#login").click(function() {
+					var data = {};
+					data.type = document.getElementById("loginType").value;
+					data.user = document.getElementById("inputUser").value;
+					data.password = e(document.getElementById("inputPassword").value);
+					if(data.user != null && data.password != null) {
+						$.ajax({
+							type: "post",
+							async: false,
+							url: "http://" + url + "/login",
+							data: data,
+							dataType: 'json',
+							crossDomain: true,
+							xhrFields:{ withCredentials: true },
+							success: function (data_bk) {
+								data_bk = eval(data_bk);
+								if (data_bk.password) {
+									document.getElementById("model-text").innerHTML = '登录成功，点击关闭跳转。';
+									if (data.type == 'practice') {
+										$("#close").attr("onclick", "window.location.href='practice_list.html';");
+									}
+									else if (data.type == 'competition') {
+										$("#close").attr("onclick", "window.location.href='competition_list.html';");
+									}
+									else if (data.type == 'admin') {
+										$("#close").attr("onclick", "window.location.href='management.html#!/users';");
+									}
+									document.getElementById("Model").click();
+								}
+								else if (data_bk.user) {
+									document.getElementById("model-text").innerHTML = '密码错误，请重新输入！';
+									$("#close").attr("onclick", "document.getElementById('inputPassword').value = '';");
+									document.getElementById("Model").click();
+								}
+								else {
+									document.getElementById("model-text").innerHTML = '用户名不存在，请重新输入！';
+									$("#close").attr("onclick", "document.getElementById('inputUser').value = '';changeUser('');document.getElementById('inputPassword').value = '';changePassword('');");
+									document.getElementById("Model").click();
+								}
+							},
+							error: function (err) {
+								document.getElementById("model-text").innerHTML = err.responseText;
+								$("#close").attr("onclick", "document.getElementById('inputUser').value = '';changeUser('');document.getElementById('inputPassword').value = '';changePassword('');");
+								document.getElementById("Model").click();
+							}
+						})
+					}
+				})
+				// 练习按钮监听，调整按钮激活状态
+				$("#practice").click(function() {
+					$("#practice").addClass("active");
+					$("#competition").removeClass("active");
+					$("#admin").removeClass("active");
+					$("#loginType").attr("value", "practice");
+				})
+				// 比赛按钮监听，调整按钮激活状态
+				$("#competition").click(function() {
+					$("#practice").removeClass("active");
+					$("#competition").addClass("active");
+					$("#admin").removeClass("active");
+					$("#loginType").attr("value", "competition");
+				})
+				// 管理员按钮监听，调整按钮激活状态
+				$("#admin").click(function() {
+					$("#practice").removeClass("active");
+					$("#competition").removeClass("active");
+					$("#admin").addClass("active");
+					$("#loginType").attr("value", "admin");
+				})
+			})
+			// 日期刷新
+			function gettime() {
+				var time = new Date();
+				var year = time.getFullYear();
+				var month = time.getMonth()+1;
+				var weeks = time.getDay();
+				var week = "";
+				switch(weeks){
+					case 1:
+					week = "星期一";
+					break;
+					case 2:
+					week = "星期二";
+					break;
+					case 3:
+					week = "星期三";
+					break;
+					case 4:
+					week = "星期四";
+					break;
+					case 5:
+					week = "星期五";
+					break;
+					case 6:
+					week = "星期六";
+					break;
+					case 0:
+					week= "星期日";
+					break;
+				}
+				var day = time.getDate();
+				var apm = "上午";
+				var hours = time.getHours();
+				if(hours > 12){hours = hours - 12;apm = "下午";}
+				var minutes = time.getMinutes();
+				var seconds = time.getSeconds();
+				document.getElementById("clock").innerHTML = "当前时间：" + year + "年" + month + "月" + day + "日&nbsp;" + apm + "&nbsp;" + hours + ":" + minutes + ":" + seconds + "&nbsp;" + week;
+				var dy=setTimeout("gettime()", 1000);
+			}
+			// 判断用户名是否合法
+			function changeUser(user) {
+				u = false;
+				remove_has("#user");
+				$("#login").attr("disabled", "");
+				if (!user) {
+					$("#user").addClass("has-error");
+					document.getElementById("helpUser").innerHTML = '用户名为9位，由数字组成。';
+				}
+				else if (!/^[0-9]+$/.test(user)) {
+					$("#user").addClass("has-error");
+					document.getElementById("helpUser").innerHTML = '用户名仅由数字组成。';
+				}
+				else if (user.length != 9) {
+					$("#user").addClass("has-warning");
+					document.getElementById("helpUser").innerHTML = '用户名为9位。';
+				}
+				else {
+					$("#user").addClass("has-success");
+					document.getElementById("helpUser").innerHTML = '用户名格式正确。';
+					u = true;
+					if (u && p) {
+						$("#login").removeAttr("disabled");
+					}
+				}
+			}
+			// 判断用户密码是否合法
+			function changePassword(password) {
+				p = false;
+				remove_has("#password");
+				$("#login").attr("disabled", "");
+				if (!user) {
+					$("#password").addClass("has-error");
+					document.getElementById("helpPassword").innerHTML = '密码至少8位，由数字大小写字母和下划线组成。';
+				}
+				else if (!/^[a-zA-Z0-9_]+$/.test(password)) {
+					$("#password").addClass("has-error");
+					document.getElementById("helpPassword").innerHTML = '密码仅由数字大小写字母和下划线组成。';
+				}
+				else if (password.length < 8) {
+					$("#password").addClass("has-warning");
+					document.getElementById("helpPassword").innerHTML = '密码至少8位。';
+				}
+				else {
+					$("#password").addClass("has-success");
+					document.getElementById("helpPassword").innerHTML = '密码格式正确。';
+					p = true;
+					if (u && p) {
+						$("#login").removeAttr("disabled");
+					}
+				}
+			}
+			// 调整输入框颜色状态显示
+			function remove_has(id) {
+				var has = ["has-success", "has-warning", "has-error"];
+				for (var h = 0;h < has.length;h++) {
+					$(id).removeClass(has[h])
+				}
+			}
+		</script>
+	</body>
+</html>

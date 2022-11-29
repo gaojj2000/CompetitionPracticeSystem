@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<!-- 比赛详情界面 -->
+<html>
+	<head>
+		<meta charset="utf-8"><!-- 字符编码 -->
+		<meta http-equiv="X-UA-Compatible" content="IE=edge"><!-- IE 兼容模式 -->
+		<meta name="viewport" content="width=device-width, initial-scale=1"><!-- 允许响应式布局 -->
+		<link rel="stylesheet" href="static/css/bootstrap.min.css">
+		<link rel="stylesheet" href="static/css/plugins.min.css" />
+		<script src="static/js/jquery-3.4.1.min.js"></script>
+		<script src="static/js/bootstrap.min.js"></script>
+		<title>比赛详情界面</title>
+		<style>
+			pre{
+				text-align: left;
+			}
+		</style>
+	</head>
+	<body onload="calc_time();get_ques()">
+		<div class="ui-notification success killed" style="top: 10px;right: 10px;">
+			<div class="message" id="message"></div>
+		</div>
+		<div class="container">
+			<h4 class="text-center">比赛数据信息</h4>
+			<div style="border: 1px solid blue;padding: 10px 0;margin: 30px 0;">
+				<img src="static/yjs.png" class="center-block" style="padding-top: 20px;width: 60%;" />
+				<p class="text-center" style="font-size: 20px;">图1 云计算架构图</p>
+				<img src="static/ip.png" class="center-block" style="padding-top: 10px;width: 60%;" />
+				<p class="text-center" style="font-size: 20px;">表1 IP地址规划表</p>
+				<img src="static/openrc.png" class="center-block" style="padding-top: 10px;width: 60%;" />
+				<p class="text-center" style="font-size: 20px;">表2 变量配置表</p>
+				<div id="clock" style="text-align: center;margin: 10px auto;font-size: 20px;"></div>
+				<p style="font-size: 18px;padding-left: 50px;">注：表1中的x为考位号；根据以上信息，检查硬件连线及网络设备配置，确保网络连接正常。</p>
+			</div>
+			<div style="width: 100%;height: 56px;line-height: 56px;">
+				<h6 style="float: left;line-height: 34px;">当前得分 <span style="color: red;">0</span> 分</h6>
+				<a href="javascript:void(0);" style="margin: 0 50px;" onclick="show_detail()">查看得分明细</a>
+				<a href="javascript:void(0);" onclick="show_all()">查看得分排名</a>
+				<h3 style="float: right;">比赛已开始 <span style="color: red;">0</span> 秒</h3>
+			</div>
+			<div style="width: 100%;height: 34px;">
+				<form class="form-inline pull-right">
+					<div class="form-group">
+						<label for="username">用户名</label>
+						<input type="text" class="form-control" id="username" placeholder="root">
+					</div>
+					<div class="form-group" style="margin: 0 20px;">
+						<label for="password">密码</label>
+						<input type="password" class="form-control" id="password" placeholder="000000">
+					</div>
+					<button type="button" class="btn btn-primary" onclick="check()">提交凭据</button>
+				</form>
+			</div>
+			<h1 class="text-center">题目类别</h1>
+			<h2 class="text-center" style="padding: 10px 0;text-align: left;"><pre>题目详情</pre></h2>
+			<div style="width: 100%;height: 34px;margin: 20px 0;">
+				<form class="form-inline pull-left">
+					<div class="form-group" style="margin: 10px 20px;width: 100%;">
+						<label for="ip">IP地址</label>
+						<input type="text" class="form-control" id="ip" placeholder="192.168.100.10">
+					</div>
+					<div class="form-group" style="margin: 10px 20px;width: 100%;">
+						<button id="submit" type="button" class="btn btn-primary" onclick="check_answer()" style="float: left;margin: 0 20px;">提交答案</button>
+						<h5 style="float: left;">本题剩余提交次数： <span style="color: red;">0</span> 次</h5>
+					</div>
+				</form>
+			</div>
+			<div style="height: 34px;margin: 20px 0;">
+				<button id="go" type="button" class="btn btn-primary pull-right sr-only" onclick="get_ques('0')">下一题</button>
+			</div>
+			<div class="progress" style="height: 10px;width: 95%;margin: 0;padding: 0;">
+				<div id="bar" class="progress-bar progress-bar-success" style="width: 0%;"></div>
+			</div>
+			<span id="pro" style="float: right;margin-top: -15px;">0%</span>
+		</div>
+		<script type="text/javascript">
+			var url = "127.0.0.1:8888", c = false, t = false;
+			// 右上角消息提示框改变文字出现并定时消失功能
+			function note(msg) {
+				msg = msg || "server no-repeat"
+				document.getElementById("message").innerText = msg;
+				$(".ui-notification").removeClass("killed");
+				setTimeout(function(){$(".ui-notification").addClass("killed")}, 2000);
+			}
+			// 计算比赛正向计时
+			function calc_time() {
+				if (document.cookie) {
+					$("h3 span").text(Date.parse(new Date())/1000-document.cookie.split('time=')[1].split(';')[0]);
+				}
+				else {
+					$("h3 span").text("0");
+				}
+				var dy=setTimeout("calc_time()", 1000);
+			}
+			// 获取题目（点击下一题按钮产生参数，刷新则不产生参数）
+			function get_ques(n) {
+				n = n || '';
+				progress(false,"0");
+				$.ajax({
+					type: "get",
+					async: false,
+					url: "http://" + url + "/detail",
+					data: {n: n},
+					dataType: "json",
+					crossDomain: true,
+					xhrFields:{ withCredentials: true },
+					success: function (data_bk) {
+						data_bk = eval(data_bk);
+						if ('res' in data_bk) {
+							note(data_bk.res);
+							if (eval(data_bk).res == "恭喜你，全部题目已经被答题完毕！") {
+								$("#go").addClass("sr-only");
+								$("h5 span").text("0");
+								$("h6 span").text(eval(data_bk).score);
+								$("#submit").attr("disabled", "");
+							}
+						}
+						else {
+							if (eval(data_bk).times < 3) {
+								$("#go").removeClass("sr-only");
+							}
+							else {
+								$("#go").addClass("sr-only");
+							}
+							$("h1").text(data_bk["type"]);
+							$("h2 pre").text(data_bk["question"]);
+							$("h5 span").text(eval(data_bk).times);
+							$("h6 span").text(eval(data_bk).score);
+							c = false;
+							t = false;
+						}
+					},
+					error: function (err) {
+						console.log(err.responseText);
+					}
+				})
+			}
+			// 让后端保存用户名和密码
+			function check() {
+				if ($("#username").val() && $("#password").val()) {
+					$.ajax({
+						type: "get",
+						async: false,
+						url: "http://" + url + "/check",
+						data: {username: $("#username").val(), password: $("#password").val()},
+						dataType: "json",
+						crossDomain: true,
+						xhrFields:{ withCredentials: true },
+						success: function (data_bk) {
+							note(eval(data_bk).res);
+							c = eval(data_bk).check;
+						},
+						error: function (err) {
+							console.log(err.responseText);
+						}
+					})
+				}
+				else {
+					note("请输入用户名和密码！");
+				}
+			}
+			// 检查答案
+			function check_answer() {
+				if ($("#ip").val() && c) {
+					$.ajax({
+						type: "post",
+						async: false,
+						url: "http://" + url + "/check",
+						data: {ip: $("#ip").val()},
+						dataType: "json",
+						crossDomain: true,
+						xhrFields:{ withCredentials: true },
+						success: function (data_bk) {
+							if (eval(data_bk).res.indexOf("成功") != -1) {
+								progress(false,"0");
+								setTimeout("progress(5)", 1000);
+								$.ajax({
+									type: "post",
+									async: true,
+									url: "http://" + url + "/check_que",
+									crossDomain: true,
+									xhrFields:{ withCredentials: true },
+									success: function (data_bk) {
+										progress(false,"100");
+										note(eval(data_bk).res);
+										if (eval(data_bk).res == "恭喜你，全部题目已经被答题完毕！") {
+											$("#go").addClass("sr-only");
+											$("h5 span").text("0");
+											$("h6 span").text(eval(data_bk).score);
+											$("#submit").attr("disabled", "");
+										}
+										else if (eval(data_bk).times < 3) {
+											$("#go").removeClass("sr-only");
+										}
+										else {
+											$("#go").addClass("sr-only");
+										}
+										$("h5 span").text(eval(data_bk).times);
+									},
+									error: function (err) {
+										console.log(err.responseText);
+									}
+								})
+							}
+							else {
+								note(eval(data_bk).res);
+							}
+							t = true;
+						},
+						error: function (err) {
+							console.log(err.responseText);
+						}
+					})
+				}
+				else if (!c) {
+					note("请先提交凭据！");
+				}
+				else {
+					note("请输入机器地址！");
+				}
+			}
+			// 检查答案进度条
+			function progress(s,p) {
+				s = s || false;
+				p = p || "";
+				if (p) {
+					$("#pro").text(p + "%");
+				}
+				else if (parseInt($("#pro").text().replace("%", "")) < 99) {
+					$("#pro").text(parseInt($("#pro").text().replace("%", "")) + 1 + "%");
+					if (s) {
+						setTimeout("progress(" + (s + 2) + ")", s);
+					}
+				}
+				document.getElementById("bar").style.width = $("#pro").text();
+			}
+			// 查看用户个人答题得分详情信息
+			function show_detail() {
+				window.open('score_list.html?0', '_blank');
+			}
+			// 查看全部用户答题得分信息
+			function show_all() {
+				window.open('score_list.html', '_blank');
+			}
+		</script>
+	</body>
+</html>

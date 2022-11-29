@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<!-- 排名详情界面 -->
+<html>
+	<head>
+		<meta charset="utf-8"><!-- 字符编码 -->
+		<meta http-equiv="X-UA-Compatible" content="IE=edge"><!-- IE 兼容模式 -->
+		<meta name="viewport" content="width=device-width, initial-scale=1"><!-- 允许响应式布局 -->
+		<link rel="stylesheet" href="static/css/bootstrap.min.css">
+		<link rel="stylesheet" href="static/css/plugins.min.css" />
+		<script src="static/js/jquery-3.4.1.min.js"></script>
+		<script src="static/js/bootstrap.min.js"></script>
+		<title>排名详情界面</title>
+	</head>
+	<body onload="get_data()">
+		<div class="ui-notification success killed" onclick="close()" style="top: 10px;right: 10px;">
+			<div class="message" id="message"></div>
+		</div>
+		<div class="container" style="width: 80%;margin-top: 20px;">
+			<h1 class="text-center" style="padding: 20px;">
+				用户...
+			</h1>
+			<div id="show_onlines">
+				等待填充表格...
+			</div>
+		</div>
+		<script type="text/javascript">
+			var url = "127.0.0.1:8888";
+			// 根据网址后缀获取用户得分信息
+			function get_data() {
+				var u = window.location.href.split('?')[1];
+				if (u) {
+					$.ajax({
+						type: "get",
+						async: false,
+						url: "http://" + url + "/score",
+						data: {user: u},
+						dataType: "json",
+						crossDomain: true,
+						xhrFields:{ withCredentials: true },
+						success: function (data_bk) {
+							$("h1").text("用户 " + eval(data_bk).user + " 的得分面板");
+							make_table(eval(data_bk).score, "用户 " + eval(data_bk).user + " 的得分详情已更新");
+						},
+						error: function (err) {
+							note(err.responseText)
+						}
+					})
+				}
+				else {
+					$.ajax({
+						type: "get",
+						async: false,
+						url: "http://" + url + "/score",
+						crossDomain: true,
+						xhrFields:{ withCredentials: true },
+						success: function (data_bk) {
+							$("h1").text("所有用户得分列表");
+							make_table2(eval(data_bk).score, "用户得分列表已更新");
+						},
+						error: function (err) {
+							note(err.responseText)
+						}
+					})
+				}
+			}
+			// 右上角消息提示框改变文字出现并定时消失功能
+			function note(msg) {
+				msg = msg || "server no-repeat"
+				document.getElementById("message").innerText = msg;
+				$(".ui-notification").removeClass("killed");
+				setTimeout(function(){$(".ui-notification").addClass("killed")}, 2000);
+			}
+			// 创建用户个人得分详情列表
+			function make_table(data, msg) {
+				note(msg);
+				var c;
+				var t = '\
+<table class="table table-striped table-hover text-center">\
+	<tr>\
+		<td>题目简介</td>\
+		<td>得分</td>\
+		<td>总分</td>\
+	</tr>\
+				';
+				for (var d = 0;d < data.length;d++){
+					t = t + "\
+	<tr>\
+		<td>" + data[d][0] + "</td>\
+		<td>" + data[d][1] + "</td>\
+		<td>" + data[d][2] + "</td>\
+	</tr>\
+					"
+				}
+				t += '\
+</table>\
+				';
+				document.getElementById("show_onlines").innerHTML = t;
+			}
+			// 创建所有用户总得分列表
+			function make_table2(data, msg) {
+				note(msg);
+				var c;
+				var t = '\
+<table class="table table-striped table-hover text-center">\
+	<tr>\
+		<td>登录IP</td>\
+		<td>当前答题进度</td>\
+		<td>当前总分</td>\
+	</tr>\
+				';
+				for (var d = 0;d < data.length;d++){
+					t = t + "\
+	<tr>\
+		<td>" + data[d].ip + "</td>\
+		<td>" + data[d].question_id + "</td>\
+		<td>" + data[d].score + "</td>\
+	</tr>\
+					"
+				}
+				t += '\
+</table>\
+				';
+				document.getElementById("show_onlines").innerHTML = t;
+			}
+		</script>
+	</body>
+</html>
